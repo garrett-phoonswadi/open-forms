@@ -1,0 +1,10 @@
+{
+	"preferredVersions": { "php": "8.3", "wp": "latest" },
+	"steps": [
+		{ "step": "installPlugin", "pluginData": { "resource": "wordpress.org/plugins", "slug": "plugin-check" }, "options": { "activate": true } },
+		{
+			"step": "runPHP",
+			"code": "<?php require '/wordpress/wp-load.php'; $dir = '/wordpress/wp-content/plugins/open-forms/'; $ctx = new WordPress\\Plugin_Check\\Checker\\Check_Context( $dir . 'open-forms.php' ); $repo = new WordPress\\Plugin_Check\\Checker\\Default_Check_Repository(); $checks = $repo->get_checks( WordPress\\Plugin_Check\\Checker\\Check_Repository::TYPE_STATIC ); $res = new WordPress\\Plugin_Check\\Checker\\Check_Result( $ctx ); foreach ( $checks as $c ) { try { $c->run( $res ); } catch ( Throwable $e ) { file_put_contents( $dir . 'pc-err.txt', get_class( $c ) . ': ' . $e->getMessage() . \"\\n\", FILE_APPEND ); } } file_put_contents( $dir . 'pc-out.json', json_encode( array( 'errors' => $res->get_errors(), 'warnings' => $res->get_warnings() ) ) );"
+		}
+	]
+}

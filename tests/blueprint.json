@@ -1,0 +1,17 @@
+{
+  "landingPage": "/form/",
+  "preferredVersions": { "php": "8.3", "wp": "latest" },
+  "steps": [
+    { "step": "login", "username": "admin", "password": "password" },
+    { "step": "activatePlugin", "pluginPath": "open-forms/open-forms.php" },
+    {
+      "step": "writeFile",
+      "path": "/wordpress/wp-content/mu-plugins/of-test.php",
+      "data": "<?php add_filter('of_rate_limit', function ($l) { return isset($_SERVER['HTTP_X_TEST_LIMIT']) ? (int) $_SERVER['HTTP_X_TEST_LIMIT'] : $l; });"
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php require '/wordpress/wp-load.php'; $id = wp_insert_post(array('post_type'=>'open_form','post_status'=>'publish','post_title'=>'Test form')); $cfg = of_sanitize_config(array('fields'=>array(array('type'=>'text','name'=>'name','label'=>'Name','required'=>true),array('type'=>'email','name'=>'email','label'=>'Email'),array('type'=>'file','name'=>'doc','label'=>'Doc'),array('type'=>'file','name'=>'cad','label'=>'CAD','accept'=>'stl, step, png, php','max_mb'=>1,'attach'=>true)),'settings'=>array('captcha'=>false,'success'=>'Thanks <b>friend</b><script>alert(1)</script>','webhook'=>'http://evil.example/'))); update_post_meta($id,'_of_config',wp_slash(wp_json_encode($cfg))); wp_insert_post(array('post_type'=>'page','post_status'=>'publish','post_title'=>'Form page','post_name'=>'form','post_content'=>'[open_form id=\"'.$id.'\"]')); echo 'form='.$id;"
+    }
+  ]
+}

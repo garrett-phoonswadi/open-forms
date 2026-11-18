@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Open Forms
  * Description: Free form builder: multi-step, conditional logic, file uploads, entries, CSV export, spam protection, webhooks.
- * Version: 1.3.0
+ * Version: 1.3.1
  * Requires at least: 5.8
  * Tested up to: 6.8
  * Requires PHP: 7.4
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'OF_VER', '1.3.0' );
+define( 'OF_VER', '1.3.1' );
 define( 'OF_URL', plugin_dir_url( __FILE__ ) );
 
 const OF_FIELD_TYPES = array( 'text', 'email', 'number', 'tel', 'url', 'textarea', 'select', 'radio', 'checkbox', 'date', 'file', 'hidden', 'html', 'step' );
@@ -570,6 +570,20 @@ function of_check_token( $form_id, $tok ) {
 	return $age >= 0 && $age <= DAY_IN_SECONDS && hash_equals( of_form_token( $form_id, (int) $p[0] ), $tok );
 }
 
+// A valid token can otherwise be replayed (double-click, browser back button, retried request) to
+// create duplicate entries, since it's a stateless signature rather than a one-time nonce. These two
+// functions track consumption separately so a second submission with the same token is rejected once
+// the first one succeeds, without changing what makes a token valid in the first place.
+function of_token_used( $form_id, $tok ) {
+	return (bool) get_transient( 'of_tokused_' . md5( $form_id . '|' . $tok ) );
+}
+
+function of_consume_token( $form_id, $tok ) {
+	$ts  = (int) explode( '.', $tok, 2 )[0];
+	$ttl = max( 60, $ts + DAY_IN_SECONDS - time() );
+	set_transient( 'of_tokused_' . md5( $form_id . '|' . $tok ), 1, $ttl );
+}
+
 function of_default_email() {
 	return array(
 		'name'    => 'Admin notification',
@@ -822,7 +836,8 @@ function of_submit() {
 		wp_send_json_error( array( 'message' => 'Invalid form.' ), 400 );
 	}
 
-	if ( count( $_POST ) > 300 || ! of_check_token( $form_id, wp_unslash( $_POST['of_tok'] ?? '' ) ) ) {
+	$tok = wp_unslash( $_POST['of_tok'] ?? '' );
+	if ( count( $_POST ) > 300 || ! of_check_token( $form_id, $tok ) || of_token_used( $form_id, $tok ) ) {
 		wp_send_json_error( array( 'message' => 'Session expired. Please reload the page and try again.' ), 400 );
 	}
 
@@ -1004,6 +1019,7 @@ function of_submit() {
 		'created'  => current_time( 'mysql' ),
 	) );
 	$entry_id = (int) $wpdb->insert_id;
+	of_consume_token( $form_id, $tok );
 
 	if ( $pay['enabled'] ) {
 		// Manual/external payment: no API call, no redirect. The entry stays "pending" for the

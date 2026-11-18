@@ -105,6 +105,12 @@ t( 'malformed token rejected', ! of_check_token( 7, 'abc.def' ) && ! of_check_to
 t( 'expired token rejected', ! of_check_token( 7, of_form_token( 7, time() - DAY_IN_SECONDS - 10 ) ) );
 t( 'future-dated token rejected', ! of_check_token( 7, of_form_token( 7, time() + 1000 ) ) );
 t( 'array token does not crash', ! of_check_token( 7, array( 'x' ) ) );
+t( 'fresh token not yet marked used', ! of_token_used( 7, $tok ) );
+of_consume_token( 7, $tok );
+t( 'token marked used after consuming it', of_token_used( 7, $tok ) );
+t( 'same token still valid on its own (signature check is separate from use-tracking)', of_check_token( 7, $tok ) );
+t( 'a different token for the same form is unaffected', ! of_token_used( 7, of_form_token( 7, time() - 10 ) ) );
+t( 'same token used on a different form is unaffected', ! of_token_used( 8, $tok ) );
 
 echo "Conditional logic\n";
 $mk = function ( $op, $val ) { return array( 'logic' => array( 'enabled' => true, 'field' => 'a', 'op' => $op, 'value' => $val ) ); };

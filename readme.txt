@@ -4,7 +4,7 @@ Tags: forms, contact form, file upload, stripe, stl, paypal
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,6 +46,9 @@ This plugin only contacts third-party services when the site owner enables them 
 Uploads are stored in `wp-content/uploads/open-forms-private/`. On nginx, add `location ^~ /wp-content/uploads/open-forms-private/ { deny all; }`.
 
 == Changelog ==
+
+= 1.3.1 =
+* The submission token is now single-use: resubmitting the exact same token (double-click, back button, retried request) is rejected instead of creating a duplicate entry.
 
 = 1.3.0 =
 * Added "Manual / external payment link" as a third payment option — no API needed, for site owners who invoice clients directly (e.g. bank transfer, wire, or a Chase payment link). Entries are saved as "pending" with immediate notification, and can be marked paid from the Entries screen.

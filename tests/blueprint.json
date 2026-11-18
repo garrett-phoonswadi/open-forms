@@ -7,11 +7,15 @@
     {
       "step": "writeFile",
       "path": "/wordpress/wp-content/mu-plugins/of-test.php",
-      "data": "<?php add_filter('of_rate_limit', function ($l) { return isset($_SERVER['HTTP_X_TEST_LIMIT']) ? (int) $_SERVER['HTTP_X_TEST_LIMIT'] : $l; });"
+      "data": "<?php add_filter('of_rate_limit', function ($l) { return isset($_SERVER['HTTP_X_TEST_LIMIT']) ? (int) $_SERVER['HTTP_X_TEST_LIMIT'] : $l; }); add_filter('of_client_ip', function ($ip) { return isset($_SERVER['HTTP_X_TEST_IP']) ? $_SERVER['HTTP_X_TEST_IP'] : $ip; }); add_action('wp_ajax_nopriv_of_test_seed_info', function () { wp_send_json_success(get_option('of_test_seed', array())); });"
     },
     {
       "step": "runPHP",
       "code": "<?php require '/wordpress/wp-load.php'; $id = wp_insert_post(array('post_type'=>'open_form','post_status'=>'publish','post_title'=>'Test form')); $cfg = of_sanitize_config(array('fields'=>array(array('type'=>'text','name'=>'name','label'=>'Name','required'=>true),array('type'=>'email','name'=>'email','label'=>'Email'),array('type'=>'file','name'=>'doc','label'=>'Doc'),array('type'=>'file','name'=>'cad','label'=>'CAD','accept'=>'stl, step, png, php','max_mb'=>1,'attach'=>true)),'settings'=>array('captcha'=>false,'success'=>'Thanks <b>friend</b><script>alert(1)</script>','webhook'=>'http://evil.example/'))); update_post_meta($id,'_of_config',wp_slash(wp_json_encode($cfg))); wp_insert_post(array('post_type'=>'page','post_status'=>'publish','post_title'=>'Form page','post_name'=>'form','post_content'=>'[open_form id=\"'.$id.'\"]')); echo 'form='.$id;"
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php require '/wordpress/wp-load.php'; $whsec = 'whsec_e2e_test_secret'; update_option('of_settings', array('stripe_mode'=>'test','stripe_whsec_test'=>$whsec)); $pay_id = wp_insert_post(array('post_type'=>'open_form','post_status'=>'publish','post_title'=>'Payment form')); $pcfg = of_sanitize_config(array('fields'=>array(array('type'=>'text','name'=>'name','label'=>'Name','required'=>true)),'settings'=>array('captcha'=>false,'success'=>'Thanks','payment'=>array('enabled'=>true,'provider'=>'stripe','mode'=>'fixed','amount'=>'25.00','currency'=>'usd')))); update_post_meta($pay_id,'_of_config',wp_slash(wp_json_encode($pcfg))); global $wpdb; $t = $wpdb->prefix.'of_entries'; $seed = array('pay_form_id'=>$pay_id,'whsec'=>$whsec); foreach (array('entry_paid','entry_fail','entry_abandoned') as $k) { $wpdb->insert($t, array('form_id'=>$pay_id,'data'=>wp_json_encode(array('name'=>'Payer')),'ip'=>'127.0.0.1','status'=>'pending','total'=>25.00,'currency'=>'usd','created'=>current_time('mysql'))); $seed[$k] = (int) $wpdb->insert_id; } update_option('of_test_seed', $seed); echo 'seeded';"
     }
   ]
 }
